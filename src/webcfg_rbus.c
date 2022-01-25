@@ -1182,12 +1182,16 @@ rbusError_t rbusWebcfgEventHandler(rbusHandle_t handle, rbusProperty_t prop, rbu
 	char const* paramName = NULL;
 
 	paramName = rbusProperty_GetName(prop);
+        WebcfgInfo("value of paramName = %s\n", paramName);
+        WebcfgInfo("value of WEBCFG_EVENT_NAME = %s\n", WEBCFG_EVENT_NAME);
+        WebcfgInfo("value of maxParamLen = %d\n", maxParamLen);
 
 	if((paramName !=NULL) && (strncmp(paramName, WEBCFG_EVENT_NAME, maxParamLen) == 0))
 	{
 		rbusValue_t paramValue_t = rbusProperty_GetValue(prop);
-
+                //WebcfgInfo("value of paramValue_t->d.bytes->data = %s\n", paramValue_t->d.bytes->data);
 		char* data = rbusValue_ToString(paramValue_t, NULL, 0);
+		WebcfgInfo("Value of data = %s\n", data);
 		WebcfgDebug("Event data received from rbus_set is %s\n", data);
 		if(data !=NULL)
 		{
