@@ -40,9 +40,6 @@ static char ForceSync[256]={'\0'};
 static char ForceSyncTransID[256]={'\0'};
 
 static int subscribed = 0;
-rbusDataElement_t eventDataElement[1] = {
-		{WEBCFG_EVENT_NAME, RBUS_ELEMENT_TYPE_PROPERTY, {NULL, rbusWebcfgEventHandler, NULL, NULL, NULL, NULL}}
-	};
 
 typedef struct
 {
@@ -1175,77 +1172,75 @@ void getValues_rbus(const char *paramName[], const unsigned int paramCount, int 
 	}
 }
 
-rbusError_t rbusWebcfgEventHandler(rbusHandle_t handle, rbusProperty_t prop, rbusSetHandlerOptions_t* opts)
+void rbusWebcfgEventHandler(rbusHandle_t handle, rbusMessage_t* msg, void * userData)
 {
-	(void) handle;
-	(void) opts;
-	char const* paramName = NULL;
-
-	paramName = rbusProperty_GetName(prop);
-        WebcfgInfo("value of paramName = %s\n", paramName);
-        WebcfgInfo("value of WEBCFG_EVENT_NAME = %s\n", WEBCFG_EVENT_NAME);
-        WebcfgInfo("value of maxParamLen = %d\n", maxParamLen);
-
-	if((paramName !=NULL) && (strncmp(paramName, WEBCFG_EVENT_NAME, maxParamLen) == 0))
+	(void)handle;
+	(void)userData;
+	if(msg == NULL)
 	{
-		rbusValue_t paramValue_t = rbusProperty_GetValue(prop);
-                //WebcfgInfo("value of paramValue_t->d.bytes->data = %s\n", paramValue_t->d.bytes->data);
-		char* data = rbusValue_ToString(paramValue_t, NULL, 0);
-		WebcfgInfo("Value of data = %s\n", data);
-		WebcfgDebug("Event data received from rbus_set is %s\n", data);
-		if(data !=NULL)
-		{
-			char eventMsg[128]= {'\0'};
-			webcfgStrncpy(eventMsg, data, sizeof(eventMsg));
-			WEBCFG_FREE(data);
-			WebcfgInfo("Received msg %s from topic webconfigSignal\n", eventMsg);
-
-			webcfgCallback(eventMsg, NULL);
-		}
+		WebcfgError("rbusWebcfgEventHandler msg empty\n");
+		return;
 	}
-	return RBUS_ERROR_SUCCESS;
+	WebcfgDebug("rbusWebcfgEventHandler topic=%s length=%d\n", msg->topic, msg->length);
+
+	if((msg->topic !=NULL) && (strcmp(msg->topic, "webconfigSignal") == 0))
+	{
+		char * eventMsg =NULL;
+		int size =0;
+
+		WebcfgInfo("Received msg %s from topic webconfigSignal\n", (char const *)msg->data);
+
+		eventMsg = (char *)msg->data;
+		size = msg->length;
+
+		WebcfgDebug("webcfgCallback with eventMsg %s size %d \n", eventMsg, size );
+		webcfgCallback(eventMsg, NULL);
+	}
+	WebcfgDebug("rbusWebcfgEventHandler End\n");
 }
 
-/* API to register RBUS dataElement to receive messages from components */
-rbusError_t registerRBUSEventElement()
+/* API to register RBUS listener to receive messages from components */
+rbusError_t registerRBUSEventlistener()
 {
 	rbusError_t rc = RBUS_ERROR_BUS_ERROR;
 	if(!rbus_handle)
 	{
-		WebcfgError("registerRBUSEventElement failed as rbus_handle is not initialized\n");
+		WebcfgError("registerRBUSEventlistener failed as rbus_handle is not initialized\n");
 		return rc;
 	}
 
-	rc = rbus_regDataElements(rbus_handle, 1, eventDataElement);
+	WebcfgDebug("B4 rbusMessage_AddListener\n");
+	rc = rbusMessage_AddListener(rbus_handle, "webconfigSignal", &rbusWebcfgEventHandler, NULL);
 	if(rc != RBUS_ERROR_SUCCESS)
 	{
-		WebcfgError("registerRBUSEventElement failed err: %s\n", rbusError_ToString(rc));
+		WebcfgError("registerRBUSEventlistener failed err: %s\n", rbusError_ToString(rc));
 	}
 	else
 	{
-		WebcfgDebug("registerRBUSEventElement success\n");
+		WebcfgDebug("registerRBUSEventlistener success\n");
 	}
 	return rc;
 }
 
-/* API to unregister RBUS dataElement events */
-rbusError_t removeRBUSEventElement()
+/* API to un register RBUS listener events */
+rbusError_t removeRBUSEventlistener()
 {
 	rbusError_t rc = RBUS_ERROR_BUS_ERROR;
 	if(!rbus_handle)
 	{
-		WebcfgError("rbus_unregDataElements failed as rbus_handle is not initialized\n");
+		WebcfgError("removeRBUSEventlistener failed as rbus_handle is not initialized\n");
 		return rc;
 	}
 
-	rc = rbus_unregDataElements(rbus_handle, 1, eventDataElement);
+	WebcfgDebug("B4 rbusMessage_RemoveListener\n");
+	rc = rbusMessage_RemoveListener(rbus_handle, "webconfigSignal");
 	if(rc != RBUS_ERROR_SUCCESS)
 	{
-		WebcfgError("rbus_unregDataElements failed err: %s\n", rbusError_ToString(rc));
+		WebcfgError("removeRBUSEventlistener failed err: %s\n", rbusError_ToString(rc));
 	}
 	else
 	{
-		WebcfgDebug("rbus_unregDataElements success\n");
+		WebcfgDebug("removeRBUSEventlistener success\n");
 	}
 	return rc;
 }
