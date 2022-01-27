@@ -1181,7 +1181,7 @@ void rbusWebcfgEventHandler(rbusHandle_t handle, rbusMessage_t* msg, void * user
 		WebcfgError("rbusWebcfgEventHandler msg empty\n");
 		return;
 	}
-	WebcfgDebug("rbusWebcfgEventHandler topic=%s length=%d\n", msg->topic, msg->length);
+	WebcfgInfo("rbusWebcfgEventHandler topic=%s length=%d\n", msg->topic, msg->length);
 
 	if((msg->topic !=NULL) && (strcmp(msg->topic, "webconfigSignal") == 0))
 	{
